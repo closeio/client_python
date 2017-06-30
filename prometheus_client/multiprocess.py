@@ -21,19 +21,22 @@ class MultiProcessCollector(object):
         for f in glob.glob(os.path.join(self._path, '*.db')):
             parts = os.path.basename(f).split('_')
             typ = parts[0]
-            d = core._MmapedDict(f)
-            for key, value in d.read_all_values():
-                metric_name, name, labelnames, labelvalues = json.loads(key)
-                metrics.setdefault(metric_name, core.Metric(metric_name, 'Multiprocess metric', typ))
-                metric = metrics[metric_name]
-                if typ == 'gauge':
-                    pid = parts[2][:-3]
-                    metric._multiprocess_mode = parts[1]
-                    metric.add_sample(name, tuple(zip(labelnames, labelvalues)) + (('pid', pid), ), value)
-                else:
-                    # The duplicates and labels are fixed in the next for.
-                    metric.add_sample(name, tuple(zip(labelnames, labelvalues)), value)
-            d.close()
+            try:
+                d = core._MmapedDict(f, readonly=True)
+                for key, value in d.read_all_values():
+                    metric_name, name, labelnames, labelvalues = json.loads(key)
+                    metrics.setdefault(metric_name, core.Metric(metric_name, 'Multiprocess metric', typ))
+                    metric = metrics[metric_name]
+                    if typ == 'gauge':
+                        pid = parts[2][:-3]
+                        metric._multiprocess_mode = parts[1]
+                        metric.add_sample(name, tuple(zip(labelnames, labelvalues)) + (('pid', pid), ), value)
+                    else:
+                        # The duplicates and labels are fixed in the next for.
+                        metric.add_sample(name, tuple(zip(labelnames, labelvalues)), value)
+                d.close()
+            except FileNotFoundError:
+                pass
 
         for metric in metrics.values():
             samples = {}

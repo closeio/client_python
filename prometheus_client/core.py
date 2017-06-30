@@ -321,12 +321,21 @@ class _MmapedDict(object):
 
     Not thread safe.
     """
-    def __init__(self, filename):
-        self._f = open(filename, 'a+b')
+    def __init__(self, filename, readonly=False):
+        self.filename = filename
+        if readonly:
+            filemode = 'r'
+            access = mmap.ACCESS_READ
+        else:
+            filemode = 'a+b'
+            access = mmap.ACCESS_WRITE
+
+        self._f = open(filename, filemode)
         if os.fstat(self._f.fileno()).st_size == 0:
             self._f.truncate(_INITIAL_MMAP_SIZE)
         self._capacity = os.fstat(self._f.fileno()).st_size
-        self._m = mmap.mmap(self._f.fileno(), self._capacity)
+
+        self._m = mmap.mmap(self._f.fileno(), self._capacity, access=access)
 
         self._positions = {}
         self._used = struct.unpack_from(b'i', self._m, 0)[0]
