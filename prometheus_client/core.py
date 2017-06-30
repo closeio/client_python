@@ -322,7 +322,6 @@ class _MmapedDict(object):
     Not thread safe.
     """
     def __init__(self, filename, readonly=False):
-        self.filename = filename
         if readonly:
             filemode = 'r'
             access = mmap.ACCESS_READ
@@ -334,7 +333,6 @@ class _MmapedDict(object):
         if os.fstat(self._f.fileno()).st_size == 0:
             self._f.truncate(_INITIAL_MMAP_SIZE)
         self._capacity = os.fstat(self._f.fileno()).st_size
-
         self._m = mmap.mmap(self._f.fileno(), self._capacity, access=access)
 
         self._positions = {}
